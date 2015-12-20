@@ -50,14 +50,14 @@ hist(tot$step_total,main="Total Steps per Day", ylab="Frequency",
 
 
 ```r
-mean<-mean(tot$step_total,na.rm=TRUE)
+mean<-prettyNum(mean(tot$step_total,na.rm=TRUE))
 ```
 
 
 ```r
 median<-median(tot$step_total,na.rm=TRUE)
 ```
-The median number of steps taken per day is 10765 and the mean is 1.0766189\times 10^{4}.
+The median number of steps taken per day is 10765 and the mean is 10766.19. (Source for prettyNum() trick: discussion forum; https://class.coursera.org/repdata-035/forum/thread?thread_id=55).
 
 ## What is the average daily activity pattern?
 
@@ -96,7 +96,8 @@ num_na <- length(which(is.na(activity$steps)))
 
 The number of intervals for which step data are missing is 2304.
 
-I replaced those missing values with the mean number of steps taken during the corresponding time interval (calculated across the whole data set in the data frame "int" above). 
+I replaced those missing values with the mean number of steps taken during the corresponding time interval (calculated across the whole data set in the data frame "int" above). (Source for this approach: http://stackoverflow.com/questions/24847299/using-ifelse-to-replace-nas-in-one-data-frame-by-referencing-another-data-fram?lq=1
+)
 
 ```r
 activity$steps2<-activity$steps
@@ -137,14 +138,14 @@ Note that the maximum number of steps per day has increased after filling in mis
 We can also compare the mean and median with the revised data set.
 
 ```r
-mean2<-mean(tot2$step_total)
+mean2<-prettyNum(mean(tot2$step_total))
 ```
 
 
 ```r
-median2<-median(tot2$step_total)
+median2<-prettyNum(median(tot2$step_total))
 ```
-The median number of steps taken per day based on this revised data set is 1.0766189\times 10^{4} and the mean is 1.0766189\times 10^{4}. When we ignored missing values, the median was 10765 and mean was 1.0766189\times 10^{4}. The data manipulation does not appear to have had much of an effect on the overall mean and median values for the total steps per day.
+The median number of steps taken per day based on this revised data set is 10766.19 and the mean is 10766.19. When we ignored missing values, the median was 10765 and mean was 10766.19. The data manipulation does not appear to have had much of an effect on the overall mean and median values for the total steps per day.
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
@@ -172,7 +173,7 @@ if (activity2$day[i]=="Saturday"){
 }
 ```
 
-Next I created a data frame "daytypeInt" summarizing the mean number of steps taken per interval on weekend days vs. weekdays. The resulting data frame has three columns: interval, weekend, weekday, with 288 rows representing the time intervals.
+Next I created a data frame "daytypeInt" summarizing the mean number of steps taken per interval on weekend days vs. weekdays. The resulting data frame has three columns: interval, weekend, weekday, with 288 rows representing the time intervals. (Source for reshape approach: http://stackoverflow.com/questions/13597091/stacking-columns-in-data-frame-into-one-column-in-r.)
 
 
 ```r
@@ -214,7 +215,7 @@ daytypeInt=melt(daytypeInt,id.vars=c('interval'),var='daytype')
 colnames(daytypeInt)=c("interval","daytype","mean_steps")
 ```
 
-I created a 2 line graphs within the same panel to compare the activity patterns on weekends vs. weekdays.
+I created a 2 line graphs within the same panel to compare the activity patterns on weekends vs. weekdays. (Source for code: http://www.r-bloggers.com/conditioning-and-grouping-with-lattice-graphics/)
 
 ```r
 library(lattice)

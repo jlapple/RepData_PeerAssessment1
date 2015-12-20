@@ -1,0 +1,176 @@
+---
+title: "Reproducible Research Assignment 1"
+author: "Jennifer L. Apple"
+date: "December 18, 2015"
+output: html_document
+---
+### Loading the data
+
+The first step is to load the data, which includes 2 months of activity tracker data collected at 5-minute intervals. The data file includes a column for date, number of steps per 5-minute interval, and the interval number.
+
+```{r}
+activity=read.csv("activity.csv")
+```
+
+### What is the mean total steps taken per day?
+
+The total number of steps taken per day can be determined by reorganizing the data into a new data frame called "tot" which shows the results of taking the sum of steps (ignoring missing data) for each date. 
+
+```{r}
+library(dplyr)
+tot=as.data.frame(summarize(group_by(activity,date),sum(steps)))
+colnames(tot)=c("date","step_total")
+```
+
+A histogram shows the distribution of values for the total steps taken per day in this 2-month period. 
+
+```{r histogram, fig.height=6}
+par(mar=c(5,4,2,1),las=1)
+hist(tot$step_total,main="Total Steps per Day", ylab="Frequency",
+     xlab="Number of steps",ylim=c(0,30))
+```
+
+```{r mean}
+mean<-mean(tot$step_total,na.rm=TRUE)
+```
+
+```{r median}
+median<-median(tot$step_total,na.rm=TRUE)
+```
+The median number of steps taken per day is `r median` and the mean is `r mean`.
+
+###What is the daily activity pattern?
+
+To describe the daily activity pattern I reorganized the data into a new data frame "int" by calculating the mean number of steps taken per 5-minute interval across all days. 
+```{r}
+int=as.data.frame(summarize(group_by(activity,interval),
+mean(steps,na.rm=TRUE)))
+colnames(int)=c("interval","mean_steps")
+```
+
+The activity pattern is depicted in the following line graph. 
+```{r timeseries, fig.height=4}
+plot(int$interval,int$mean_steps,type="l", main="Daily activity pattern", xlab="Time interval", ylab="Mean number of steps")
+```
+
+The following code can be used to determine the time interval in which the most steps are taken, on average:
+```{r}
+intmax <- int[int$mean_steps == max(int$mean_steps), ]
+interval.max <-intmax$interval
+```
+
+The time interval with the greatest number of steps is `r interval.max`.
+
+###Imputing missing values
+
+The data set includes a lot of missing values indicated by "NA". I calculated the number of intervals for which we have missing data using the following code:
+```{r}
+num_na <- length(which(is.na(activity$steps))) 
+```
+
+The number of intervals for which step data are missing is `r num_na`.
+
+I replaced those missing values with the mean number of steps taken during the corresponding time interval (calculated across the whole data set in the data frame "int" above). 
+```{r}
+activity$steps2<-activity$steps
+activity$steps2 <- ifelse(is.na(activity$steps2) == TRUE, 
+      int$mean_steps[int$interval %in% activity$interval], 
+      activity$steps2)   
+```
+
+Then I created a new dataframe, "activity2", which is identical to the original but with the missing values replaced by interval means.
+
+```{r}
+activity2<-activity
+activity2$steps<-activity2$steps2
+activity2$steps2<-NULL
+```
+
+To compare this revised data set to the original, I first calculated the total steps per day and stored it in a new data frame "tot2".
+
+```{r}
+tot2=as.data.frame(summarize(group_by(activity2,date),sum(steps)))
+colnames(tot2)=c("date","step_total")
+```
+
+A histogram shows the distribution of the values for the total number of steps per day adjusted for missing data.
+
+```{r histogram2, fig.height=6}
+par(mar=c(5,4,1,1),las=1)
+hist(tot2$step_total,main="Total Steps per Day", ylab="Frequency",
+     xlab="Number of steps",ylim=c(0,35))
+```
+
+Note that the maximum number of steps per day has increased after filling in missing data with mean steps/interval.
+We can also compare the mean and median with the revised data set.
+```{r mean2}
+mean2<-mean(tot2$step_total)
+```
+
+```{r median2}
+median2<-median(tot2$step_total)
+```
+The median number of steps taken per day based on this revised data set is `r median2` and the mean is `r mean2`. When we ignored missing values, the median was `r median` and mean was `r mean`. The data manipulation does not appear to have had much of an effect on the overall mean and median values for the total steps per day.
+
+###Comparing activity on weekdays to weekends
+
+We can classify intervals as being on the weekends or weekdays through several steps. First, I modified the date column so it can be recognized by the weekends() command. Then I created a new column that lists the days of the week corresponding to each date ("day").
+
+```{r}
+d=as.Date(activity2$date)
+activity2$day=weekdays(d,abbreviate=FALSE)
+```
+
+I used a for loop and if-else statements to identify days as weekends or weekdays.
+
+```{r}
+for (i in 1:length(activity2$day)) {
+
+if (activity2$day[i]=="Saturday"){
+    activity2$daytype[i] <- "Weekend"
+} else if(activity2$day[i]=="Sunday"){
+    activity2$daytype[i] <- "Weekend"
+} else {
+    activity2$daytype[i] <- "Weekday"
+  }
+}
+```
+
+Next I created a data frame "daytypeInt" summarizing the mean number of steps taken per interval on weekend days vs. weekdays. The resulting data frame has three columns: interval, weekend, weekday, with 288 rows representing the time intervals.
+
+```{r}
+weekend=filter(activity2,daytype=="Weekend")
+weekday=filter(activity2,daytype=="Weekday")
+
+daytypeInt <- as.data.frame(summarize(group_by(weekend,interval),
+  mean(steps,na.rm=TRUE)))
+colnames(daytypeInt)=c("interval","weekend")
+weekdayInt<-(summarize(group_by(weekday,interval),
+  mean(steps,na.rm=TRUE)))
+colnames(weekdayInt)=c("interval","weekday")
+daytypeInt<-data.frame(daytypeInt,weekdayInt$weekday)
+colnames(daytypeInt)=c("interval","weekend","weekday")
+```
+
+
+```{r results="hide"}
+library(reshape)
+```
+
+```{r}
+daytypeInt=melt(daytypeInt,id.vars=c('interval'),var='daytype')
+colnames(daytypeInt)=c("interval","daytype","mean_steps")
+```
+
+I created a 2 line graphs within the same panel to compare the activity patterns on weekends vs. weekdays.
+```{r results="hide"}
+library(lattice)
+```
+
+```{r timeseries2,fig.height=5}
+xyplot(mean_steps~interval | factor(daytype), data=daytypeInt, 
+        main="Daily activity patterns: weekends vs weekdays", 
+       xlab="Time interval", ylab="Mean number of steps",  layout=c(1,2),type=c("l","l"))
+```
+
+The plot above shows some differences in the activity patterns on weekends vs. weekdays. First, activity starts later on the weekends, but higher levels of activity tend to be sustained throughout the day. On weekdays, activity starts earlier with an early peak in the morning, but overall activity levels tend to be lower the rest of the day.

@@ -1,16 +1,12 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
-author: "Jennifer L. Apple"    
----
+# Reproducible Research: Peer Assessment 1
+Jennifer L. Apple  
 
 ## Loading and preprocessing the data
 
 The first step is to load the data, which includes 2 months of activity tracker data collected at 5-minute intervals. The data file includes a column for date, number of steps per 5-minute interval, and the interval number.
 
-```{r}
+
+```r
 activity=read.csv("activity.csv")
 ```
 
@@ -18,62 +14,91 @@ activity=read.csv("activity.csv")
 
 The total number of steps taken per day can be determined by reorganizing the data into a new data frame called "tot" which shows the results of taking the sum of steps (ignoring missing data) for each date. 
 
-```{r}
+
+```r
 library(dplyr)
+```
+
+```
+## 
+## Attaching package: 'dplyr'
+## 
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+## 
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+```
+
+```r
 tot=as.data.frame(summarize(group_by(activity,date),sum(steps)))
 colnames(tot)=c("date","step_total")
 ```
 
 A histogram shows the distribution of values for the total steps taken per day in this 2-month period. 
 
-```{r histogram, fig.height=6}
+
+```r
 par(mar=c(5,4,2,1),las=1)
 hist(tot$step_total,main="Total Steps per Day", ylab="Frequency",
      xlab="Number of steps",ylim=c(0,30))
 ```
 
-```{r mean}
+![](PA1_template_files/figure-html/histogram-1.png) 
+
+
+```r
 mean<-mean(tot$step_total,na.rm=TRUE)
 ```
 
-```{r median}
+
+```r
 median<-median(tot$step_total,na.rm=TRUE)
 ```
-The median number of steps taken per day is `r median` and the mean is `r mean`.
+The median number of steps taken per day is 10765 and the mean is 1.0766189\times 10^{4}.
 
 ## What is the average daily activity pattern?
 
 To describe the daily activity pattern I reorganized the data into a new data frame "int" by calculating the mean number of steps taken per 5-minute interval across all days. 
-```{r}
+
+```r
 int=as.data.frame(summarize(group_by(activity,interval),
 mean(steps,na.rm=TRUE)))
 colnames(int)=c("interval","mean_steps")
 ```
 
 The activity pattern is depicted in the following line graph. 
-```{r timeseries, fig.height=4}
+
+```r
 plot(int$interval,int$mean_steps,type="l", main="Daily activity pattern", xlab="Time interval", ylab="Mean number of steps")
 ```
 
+![](PA1_template_files/figure-html/timeseries-1.png) 
+
 The following code can be used to determine the time interval in which the most steps are taken, on average:
-```{r}
+
+```r
 intmax <- int[int$mean_steps == max(int$mean_steps), ]
 interval.max <-intmax$interval
 ```
 
-The time interval with the greatest number of steps is `r interval.max`.
+The time interval with the greatest number of steps is 835.
 
 ## Imputing missing values
 
 The data set includes a lot of missing values indicated by "NA". I calculated the number of intervals for which we have missing data using the following code:
-```{r}
+
+```r
 num_na <- length(which(is.na(activity$steps))) 
 ```
 
-The number of intervals for which step data are missing is `r num_na`.
+The number of intervals for which step data are missing is 2304.
 
 I replaced those missing values with the mean number of steps taken during the corresponding time interval (calculated across the whole data set in the data frame "int" above). 
-```{r}
+
+```r
 activity$steps2<-activity$steps
 activity$steps2 <- ifelse(is.na(activity$steps2) == TRUE, 
       int$mean_steps[int$interval %in% activity$interval], 
@@ -82,7 +107,8 @@ activity$steps2 <- ifelse(is.na(activity$steps2) == TRUE,
 
 Then I created a new dataframe, "activity2", which is identical to the original but with the missing values replaced by interval means.
 
-```{r}
+
+```r
 activity2<-activity
 activity2$steps<-activity2$steps2
 activity2$steps2<-NULL
@@ -90,42 +116,50 @@ activity2$steps2<-NULL
 
 To compare this revised data set to the original, I first calculated the total steps per day and stored it in a new data frame "tot2".
 
-```{r}
+
+```r
 tot2=as.data.frame(summarize(group_by(activity2,date),sum(steps)))
 colnames(tot2)=c("date","step_total")
 ```
 
 A histogram shows the distribution of the values for the total number of steps per day adjusted for missing data.
 
-```{r histogram2, fig.height=6}
+
+```r
 par(mar=c(5,4,1,1),las=1)
 hist(tot2$step_total,main="Total Steps per Day", ylab="Frequency",
      xlab="Number of steps",ylim=c(0,35))
 ```
 
+![](PA1_template_files/figure-html/histogram2-1.png) 
+
 Note that the maximum number of steps per day has increased after filling in missing data with mean steps/interval.
 We can also compare the mean and median with the revised data set.
-```{r mean2}
+
+```r
 mean2<-mean(tot2$step_total)
 ```
 
-```{r median2}
+
+```r
 median2<-median(tot2$step_total)
 ```
-The median number of steps taken per day based on this revised data set is `r median2` and the mean is `r mean2`. When we ignored missing values, the median was `r median` and mean was `r mean`. The data manipulation does not appear to have had much of an effect on the overall mean and median values for the total steps per day.
+The median number of steps taken per day based on this revised data set is 1.0766189\times 10^{4} and the mean is 1.0766189\times 10^{4}. When we ignored missing values, the median was 10765 and mean was 1.0766189\times 10^{4}. The data manipulation does not appear to have had much of an effect on the overall mean and median values for the total steps per day.
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
 We can classify intervals as being on the weekends or weekdays through several steps. First, I modified the date column so it can be recognized by the weekends() command. Then I created a new column that lists the days of the week corresponding to each date ("day").
 
-```{r}
+
+```r
 d=as.Date(activity2$date)
 activity2$day=weekdays(d,abbreviate=FALSE)
 ```
 
 I used a for loop and if-else statements to identify days as weekends or weekdays.
 
-```{r}
+
+```r
 for (i in 1:length(activity2$day)) {
 
 if (activity2$day[i]=="Saturday"){
@@ -140,7 +174,8 @@ if (activity2$day[i]=="Saturday"){
 
 Next I created a data frame "daytypeInt" summarizing the mean number of steps taken per interval on weekend days vs. weekdays. The resulting data frame has three columns: interval, weekend, weekday, with 288 rows representing the time intervals.
 
-```{r}
+
+```r
 weekend=filter(activity2,daytype=="Weekend")
 weekday=filter(activity2,daytype=="Weekday")
 
@@ -155,24 +190,47 @@ colnames(daytypeInt)=c("interval","weekend","weekday")
 ```
 
 
-```{r results="hide"}
+
+```r
 library(reshape)
 ```
 
-```{r}
+```
+## Warning: package 'reshape' was built under R version 3.2.3
+```
+
+```
+## 
+## Attaching package: 'reshape'
+## 
+## The following object is masked from 'package:dplyr':
+## 
+##     rename
+```
+
+
+```r
 daytypeInt=melt(daytypeInt,id.vars=c('interval'),var='daytype')
 colnames(daytypeInt)=c("interval","daytype","mean_steps")
 ```
 
 I created a 2 line graphs within the same panel to compare the activity patterns on weekends vs. weekdays.
-```{r results="hide"}
+
+```r
 library(lattice)
 ```
 
-```{r timeseries2,fig.height=5}
+```
+## Warning: package 'lattice' was built under R version 3.2.3
+```
+
+
+```r
 xyplot(mean_steps~interval | factor(daytype), data=daytypeInt, 
         main="Daily activity patterns: weekends vs weekdays", 
        xlab="Time interval", ylab="Mean number of steps",  layout=c(1,2),type=c("l","l"))
 ```
+
+![](PA1_template_files/figure-html/timeseries2-1.png) 
 
 The plot above shows some differences in the activity patterns on weekends vs. weekdays. First, activity starts later on the weekends, but higher levels of activity tend to be sustained throughout the day. On weekdays, activity starts earlier with an early peak in the morning, but overall activity levels tend to be lower the rest of the day.
